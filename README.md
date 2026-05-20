@@ -2,11 +2,7 @@
 
 A glowing terminal screensaver that keeps your Mac awake.
 
-![javalamp picker](assets/picker.svg)
-
-## Demo
-
-![Java scene demo](assets/java-demo.gif)
+![javalamp demo](assets/javalamp-demo.gif)
 
 ## Install
 

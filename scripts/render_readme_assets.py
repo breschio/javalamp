@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import random
-from io import StringIO
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
-from rich.console import Console
 
 from javalamp import scenes  # noqa: F401
 from javalamp.picker import Picker
@@ -19,33 +17,17 @@ ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "assets"
 ASSETS.mkdir(exist_ok=True)
 
+TERM_COLS = 132
+TERM_ROWS = 33
+FONT_SIZE = 12
+FPS = 10
+SECONDS_PER_VIEW = 3
 
-def render_picker_svg() -> None:
-    width = 132
-    height = 33
-    menu_scenes = sorted(
+
+def _menu_scenes() -> list[type]:
+    return sorted(
         [cls for cls in SCENES.values() if cls.name != "konami"],
         key=lambda cls: (_PICKER_ORDER.get(cls.name, 99), cls.title),
-    )
-    picker = Picker(menu_scenes, get_theme("sunset"), random.Random(7))
-    picker._term_size = lambda: (width, height)  # noqa: SLF001
-    picker._compute_layout()  # noqa: SLF001
-    for _ in range(3):
-        picker.update(1 / 12)
-
-    console = Console(
-        record=True,
-        file=StringIO(),
-        width=width,
-        height=height,
-        color_system="truecolor",
-        force_terminal=True,
-        legacy_windows=False,
-    )
-    console.print(picker.render())
-    (ASSETS / "picker.svg").write_text(
-        console.export_svg(title="javalamp picker"),
-        encoding="utf-8",
     )
 
 
@@ -66,83 +48,136 @@ def _hex_to_rgb(color: str) -> tuple[int, int, int]:
     return tuple(int(color[i:i + 2], 16) for i in (0, 2, 4))
 
 
-def render_java_gif() -> None:
-    theme = get_theme("sunset")
-    scene = SCENES["java"](80, 18, theme, random.Random(11))
-    font = _font(15)
-    bbox = font.getbbox("M")
-    cell_w = bbox[2] - bbox[0]
-    cell_h = bbox[3] - bbox[1] + 3
+def _style_color(style, fallback: str) -> tuple[int, int, int]:
+    if style and style.color:
+        return _hex_to_rgb(style.color.triplet.hex)
+    return _hex_to_rgb(fallback)
+
+
+def _terminal_frame(
+    cells,
+    title: str,
+    font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
+    cell_w: int,
+    cell_h: int,
+    bg: tuple[int, int, int],
+    fallback_fg: str,
+) -> Image.Image:
     pad_x = 18
-    pad_y = 18
-    chrome_h = 26
-    radius = 8
-    term_w = scene.width * cell_w + pad_x * 2
-    term_h = scene.height * cell_h + pad_y * 2 + chrome_h
-    image_w = term_w
-    image_h = term_h
-    bg = _hex_to_rgb(theme.bg)
+    pad_y = 16
+    chrome_h = 28
+    image_w = TERM_COLS * cell_w + pad_x * 2
+    image_h = TERM_ROWS * cell_h + pad_y * 2 + chrome_h
     chrome_bg = (21, 24, 30)
     border = (64, 68, 78)
 
+    image = Image.new("RGB", (image_w, image_h), (13, 17, 23))
+    draw = ImageDraw.Draw(image)
+    draw.rounded_rectangle(
+        (0, 0, image_w - 1, image_h - 1),
+        radius=8,
+        fill=bg,
+        outline=border,
+        width=1,
+    )
+    draw.rounded_rectangle(
+        (0, 0, image_w - 1, chrome_h),
+        radius=8,
+        fill=chrome_bg,
+        outline=border,
+        width=1,
+    )
+    draw.rectangle((0, chrome_h - 8, image_w - 1, chrome_h), fill=chrome_bg)
+    for i, color in enumerate(((255, 95, 86), (255, 189, 46), (39, 201, 63))):
+        x = 14 + i * 18
+        draw.ellipse((x, 9, x + 10, 19), fill=color)
+    title_w = draw.textlength(title, font=font)
+    draw.text(
+        ((image_w - title_w) / 2, 6),
+        title,
+        fill=(198, 200, 206),
+        font=font,
+    )
+
+    for y, row in enumerate(cells):
+        if y >= TERM_ROWS:
+            break
+        for x, (ch, style) in enumerate(row[:TERM_COLS]):
+            if ch == " ":
+                continue
+            draw.text(
+                (pad_x + x * cell_w, chrome_h + pad_y + y * cell_h),
+                ch,
+                fill=_style_color(style, fallback_fg),
+                font=font,
+            )
+    return image
+
+
+def _picker_cells(frame: int):
+    picker = Picker(_menu_scenes(), get_theme("sunset"), random.Random(7))
+    picker._term_size = lambda: (TERM_COLS, TERM_ROWS)  # noqa: SLF001
+    picker._compute_layout()  # noqa: SLF001
+    for _ in range(frame + 1):
+        picker.update(1 / FPS)
+    picker.render()
+    return picker.canvas._cells  # noqa: SLF001
+
+
+def _java_cells(frame: int):
+    theme = get_theme("sunset")
+    scene = SCENES["java"](TERM_COLS, TERM_ROWS, theme, random.Random(11))
+    for f in range(frame + 1):
+        scene.update(f, 1 / FPS)
+    return scene.canvas._cells  # noqa: SLF001
+
+
+def render_readme_gif() -> None:
+    theme = get_theme("sunset")
+    font = _font(FONT_SIZE)
+    bbox = font.getbbox("M")
+    cell_w = bbox[2] - bbox[0]
+    cell_h = bbox[3] - bbox[1] + 3
     frames: list[Image.Image] = []
-    for frame in range(30):
-        scene.update(frame, 1 / 12)
-        image = Image.new("RGB", (image_w, image_h), (13, 17, 23))
-        draw = ImageDraw.Draw(image)
-        draw.rounded_rectangle(
-            (0, 0, image_w - 1, image_h - 1),
-            radius=radius,
-            fill=bg,
-            outline=border,
-            width=1,
+
+    frame_count = FPS * SECONDS_PER_VIEW
+    for frame in range(frame_count):
+        frames.append(
+            _terminal_frame(
+                _picker_cells(frame),
+                "javalamp picker",
+                font,
+                cell_w,
+                cell_h,
+                _hex_to_rgb(theme.bg),
+                theme.fg,
+            )
         )
-        draw.rounded_rectangle(
-            (0, 0, image_w - 1, chrome_h),
-            radius=radius,
-            fill=chrome_bg,
-            outline=border,
-            width=1,
+    for frame in range(frame_count):
+        frames.append(
+            _terminal_frame(
+                _java_cells(frame),
+                "javalamp java",
+                font,
+                cell_w,
+                cell_h,
+                _hex_to_rgb(theme.bg),
+                theme.fg,
+            )
         )
-        draw.rectangle((0, chrome_h - radius, image_w - 1, chrome_h), fill=chrome_bg)
-        for i, color in enumerate(((255, 95, 86), (255, 189, 46), (39, 201, 63))):
-            x = 14 + i * 18
-            draw.ellipse((x, 9, x + 10, 19), fill=color)
-        draw.text(
-            (image_w // 2 - 72, 6),
-            "javalamp java",
-            fill=(198, 200, 206),
-            font=font,
-        )
-        draw.text((pad_x, chrome_h + 4), "javalamp java -t sunset", fill=_hex_to_rgb(theme.fg), font=font)
-        for y, row in enumerate(scene.canvas._cells):  # noqa: SLF001
-            for x, (ch, style) in enumerate(row):
-                if ch == " ":
-                    continue
-                color = theme.fg
-                if style and style.color:
-                    color = style.color.triplet.hex
-                draw.text(
-                    (pad_x + x * cell_w, chrome_h + pad_y + y * cell_h),
-                    ch,
-                    fill=_hex_to_rgb(color),
-                    font=font,
-                )
-        frames.append(image)
 
     frames[0].save(
-        ASSETS / "java-demo.gif",
+        ASSETS / "javalamp-demo.gif",
         save_all=True,
         append_images=frames[1:],
-        duration=80,
+        duration=int(1000 / FPS),
         loop=0,
         optimize=True,
     )
 
 
 def main() -> None:
-    render_picker_svg()
-    render_java_gif()
+    render_readme_gif()
 
 
 if __name__ == "__main__":

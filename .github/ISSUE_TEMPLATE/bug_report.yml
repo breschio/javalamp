@@ -1,0 +1,51 @@
+name: 🐛 Bug report
+description: Something is broken or behaves unexpectedly
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! A few details up front make bugs much easier to fix.
+  - type: input
+    id: command
+    attributes:
+      label: Exact command you ran
+      placeholder: "javalamp matrix -t synthwave"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Include error output, traceback, or a screenshot. For visual bugs, an asciinema recording is gold.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: input
+    id: term
+    attributes:
+      label: Terminal emulator + OS
+      placeholder: "iTerm2 3.5 on macOS 15.4"
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: "3.12.4"
+    validations:
+      required: true
+  - type: input
+    id: javalamp
+    attributes:
+      label: javalamp version
+      description: Run `javalamp --version`.
+      placeholder: "0.1.0"
+    validations:
+      required: true

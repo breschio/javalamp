@@ -1,0 +1,62 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: ${{ matrix.os }} · py${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run unit tests
+        run: pytest -q
+
+      - name: Smoke-test every scene against every theme
+        # 1s per combination — catches scene/theme combinations that crash
+        # without the visual cost of running them all in CI.
+        run: |
+          python - <<'PY'
+          import subprocess, sys
+          from javalamp.scene import SCENES
+          from javalamp.theme import theme_names
+
+          fail = 0
+          scenes = sorted(s for s in SCENES if s != "konami")
+          themes = theme_names()
+          for s in scenes:
+              for t in themes:
+                  r = subprocess.run(
+                      ["javalamp", s, "-d", "1s", "--no-splash", "--no-caffeinate",
+                       "-t", t, "-s", "1"],
+                      stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                  )
+                  if r.returncode != 0:
+                      print(f"FAIL {s}/{t}: {r.stderr.decode()[:200]}",
+                            file=sys.stderr)
+                      fail += 1
+          if fail:
+              sys.exit(f"{fail} scene/theme combos failed")
+          print(f"OK ({len(scenes) * len(themes)} combos)")
+          PY

@@ -1,0 +1,107 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "javalamp"
+version = "0.1.0"
+description = "Animated ASCII screensaver for your terminal — keeps your screen alive while you step away."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "tbreschi" }]
+keywords = [
+    "ascii",
+    "animation",
+    "terminal",
+    "tui",
+    "screensaver",
+    "cli",
+    "rich",
+    "matrix",
+    "art",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Artistic Software",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Terminals",
+    "Typing :: Typed",
+]
+dependencies = [
+    "rich>=13.0",
+    "click>=8.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7",
+    "pytest-cov",
+    "pillow>=12",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+javalamp = "javalamp.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/tbreschi/javalamp"
+Repository = "https://github.com/tbreschi/javalamp"
+Issues = "https://github.com/tbreschi/javalamp/issues"
+Changelog = "https://github.com/tbreschi/javalamp/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/javalamp"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/",
+    "tests/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "SCENE_GUIDE.md",
+    "assets/",
+    "scripts/",
+    "pyproject.toml",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # bugbear
+    "UP",   # pyupgrade
+    "SIM",  # simplify
+]
+ignore = [
+    "E501",   # line length handled by formatter
+    "SIM117", # nested with is fine
+]
+
+[tool.ruff.lint.per-file-ignores]
+"src/javalamp/scenes/*.py" = ["B008"]  # Style(...) defaults are intentional

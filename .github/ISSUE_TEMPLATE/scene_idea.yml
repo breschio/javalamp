@@ -1,0 +1,48 @@
+name: 🎨 Scene idea
+description: Pitch a new scene
+title: "[scene] "
+labels: ["enhancement", "scene"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Pitch the vibe and we'll figure out the implementation together. The
+        bar is "visually distinct from the existing scenes and feels good to
+        look at while away from your keyboard."
+  - type: input
+    id: name
+    attributes:
+      label: Proposed scene name
+      description: Will be the CLI key — short and lowercase.
+      placeholder: "bouncing"
+    validations:
+      required: true
+  - type: textarea
+    id: vibe
+    attributes:
+      label: Describe the vibe
+      description: What would the user see? Reference real-world things, art, films, screensavers.
+      placeholder: "Confetti raining from the top of the screen, bouncing off the floor like ping-pong balls."
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: Reference images / videos (optional)
+      description: Paste image URLs or asciinema links.
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Complexity
+      options:
+        - "Easy — I could probably write it"
+        - "Medium — I'd want to discuss the math first"
+        - "Hard — needs a real plan"
+    validations:
+      required: true
+  - type: checkboxes
+    id: claim
+    attributes:
+      label: Claim
+      options:
+        - label: I'd like to implement this myself.

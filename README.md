@@ -4,6 +4,10 @@ A glowing terminal screensaver that keeps your Mac awake.
 
 ![javalamp picker](assets/picker.svg)
 
+## Demo
+
+![Java scene demo](assets/java-demo.gif)
+
 ## Install
 
 From this repo:
@@ -44,10 +48,6 @@ enter   play
 t       cycle theme
 q       quit
 ```
-
-## Demo
-
-![Java scene demo](assets/java-demo.gif)
 
 ## What It Does
 

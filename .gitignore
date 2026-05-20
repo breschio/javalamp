@@ -37,5 +37,7 @@ htmlcov/
 *.whl
 
 # Local notes
+.local/
+NEXT_STEPS.md
 notes.md
 TODO.local.md

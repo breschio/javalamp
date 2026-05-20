@@ -25,17 +25,17 @@ QUIT = object()
 CYCLE = object()
 
 _WORDMARK = [
-    "       _                  _                       ",
-    "      | |                | |                      ",
-    "      | | __ ___   ____ _| | __ _ _ __ ___  _ __  ",
-    "  _   | |/ _` \\ \\ / / _` | |/ _` | '_ ` _ \\| '_ \\ ",
-    " | |__| | (_| |\\ V / (_| | | (_| | | | | | | |_) |",
-    "  \\____/ \\__,_| \\_/ \\__,_|_|\\__,_|_| |_| |_| .__/ ",
-    "                                           | |    ",
-    "                                           |_|    ",
+    "     _                  _                       ",
+    "    (_)                | |                      ",
+    "     _  __ ___   ____ _| | __ _ _ __ ___  _ __  ",
+    "    | |/ _` \\ \\ / / _` | |/ _` | '_ ` _ \\| '_ \\ ",
+    "    | | (_| |\\ V / (_| | | (_| | | | | | | |_) |",
+    "    | |\\__,_| \\_/ \\__,_|_|\\__,_|_| |_| |_| .__/ ",
+    "   _/ |                                  | |    ",
+    "  |__/                                   |_|    ",
 ]
 _SMALL_WORDMARK = [
-    "Javalamp",
+    "javalamp",
 ]
 _TAGLINE = "A glowing terminal screensaver that keeps your Mac awake"
 
@@ -249,7 +249,7 @@ class Picker:
         assert canvas is not None
 
         art = _WORDMARK if canvas.width >= max(len(line) for line in _WORDMARK) else _SMALL_WORDMARK
-        use_shadow = art is _WORDMARK
+        use_shadow = False
         foreground_cells = set()
         for y, line in enumerate(art):
             x0 = max(0, (canvas.width - len(line)) // 2)

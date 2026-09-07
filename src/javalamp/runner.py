@@ -29,16 +29,17 @@ from javalamp.theme import Theme, get_theme, theme_names
 _DURATION_RE = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*([smhd]?)\s*$", re.IGNORECASE)
 _PICKER_ORDER = {
     "java": 0,
-    "bacchus": 1,
-    "donut": 2,
-    "fireworks": 3,
-    "matrix": 4,
-    "pipes": 5,
-    "pollock": 6,
-    "starfield": 7,
-    "twombly": 8,
-    "aquarium": 9,
-    "marquee": 10,
+    "buddy": 1,
+    "bacchus": 2,
+    "donut": 3,
+    "fireworks": 4,
+    "matrix": 5,
+    "pipes": 6,
+    "pollock": 7,
+    "starfield": 8,
+    "twombly": 9,
+    "aquarium": 10,
+    "marquee": 11,
 }
 
 

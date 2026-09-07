@@ -93,7 +93,7 @@ def test_scene_registry_populated():
         "matrix", "starfield", "donut", "aquarium",
         "java", "marquee", "fireworks", "pipes",
         "pollock", "twombly", "bacchus",
-        "konami",
+        "buddy", "konami",
     }
     assert expected.issubset(set(SCENES))
 
@@ -168,6 +168,66 @@ def test_all_public_scenes_survive_all_themes():
             for f in range(3):
                 scene.update(f, 1 / 24)
             assert scene.render() is not None
+
+
+def test_buddy_cycles_through_animated_states():
+    import random
+
+    from javalamp.scenes.buddy import BuddyScene
+    from javalamp.theme import get_theme
+
+    scene = BuddyScene(24, 8, get_theme("default"), random.Random(42))
+
+    scene.update(0, 0)
+    assert scene.render().plain.count("●") == 2
+
+    scene.next_blink = 0
+    scene.update(1, 1 / 24)
+    assert scene.is_blinking
+    assert "●" not in scene.render().plain
+
+    scene.is_blinking = False
+    scene.next_blink = 5
+    scene.next_sparkle = 0
+    scene.update(2, 1 / 24)
+    assert scene.is_sparkling
+    assert scene.render().plain.count("-") == 2
+    assert scene.render().plain.count("*") == 2
+
+    scene.awake_time = scene.SLEEP_AFTER
+    scene.update(3, 1 / 24)
+    assert scene.is_sleeping
+    assert scene.render().plain.count("^") == 2
+
+    scene.sleep_time = scene.SLEEP_FOR
+    scene.update(4, 1 / 24)
+    assert not scene.is_sleeping
+    assert scene.render().plain.count("●") == 2
+
+
+def test_buddy_preserves_source_grid_spacing_at_terminal_size():
+    import random
+
+    from javalamp.scenes.buddy import BuddyScene
+    from javalamp.theme import get_theme
+
+    scene = BuddyScene(80, 24, get_theme("default"), random.Random(42))
+    scene.update(0, 0)
+    rows = scene.render().plain.splitlines()
+
+    cx = scene.width // 2 - 2
+    cy = scene.height // 2
+    assert rows[cy - 2][cx - 20] == "("
+    assert rows[cy - 2][cx - 16] == "●"
+    assert rows[cy - 2][cx - 12] == ")"
+    assert rows[cy - 2][cx + 12] == "("
+    assert rows[cy - 2][cx + 16] == "●"
+    assert rows[cy - 2][cx + 20] == ")"
+    assert rows[cy + 4][cx - 8] == "\\"
+    assert rows[cy + 4][cx - 4] == "_"
+    assert rows[cy + 4][cx] == "_"
+    assert rows[cy + 4][cx + 4] == "_"
+    assert rows[cy + 4][cx + 8] == "/"
 
 
 def test_user_scene_loader_honors_env_dir(tmp_path, monkeypatch):

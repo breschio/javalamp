@@ -176,36 +176,49 @@ def test_buddy_cycles_through_animated_states():
     from javalamp.scenes.buddy import BuddyScene
     from javalamp.theme import get_theme
 
-    scene = BuddyScene(24, 8, get_theme("default"), random.Random(42))
+    scene = BuddyScene(80, 24, get_theme("default"), random.Random(42))
 
     scene.update(0, 0)
-    assert scene.render().plain.count("●") == 2
+    awake = scene.render().plain
+    cx, eye_y, eye_spacing, eye_radius_x, eye_radius_y, *_ = scene._layout()
+    left_eye = (
+        round(cx - eye_spacing / 2),
+        round(eye_y),
+    )
 
-    scene.next_blink = 0
-    scene.update(1, 1 / 24)
+    assert len(set(awake) & set(".:-=+*#%@")) >= 5
+    assert awake.splitlines()[left_eye[1]][left_eye[0]] in ".:-=+*#%@"
+
+    scene.is_blinking = True
+    scene.blink_time = scene.BLINK_FOR / 2
+    scene.update(1, 0)
     assert scene.is_blinking
-    assert "●" not in scene.render().plain
+    blinking = scene.render().plain
+    assert blinking.splitlines()[left_eye[1]][left_eye[0]] in ".:-=+*#%@"
+    assert sum(char != " " for char in blinking) < sum(char != " " for char in awake)
 
     scene.is_blinking = False
     scene.next_blink = 5
     scene.next_sparkle = 0
     scene.update(2, 1 / 24)
     assert scene.is_sparkling
-    assert scene.render().plain.count("-") == 2
-    assert scene.render().plain.count("*") == 2
+    sparkling = scene.render().plain
+    assert sparkling != awake
+    assert sparkling.splitlines()[left_eye[1]][left_eye[0]] in ":-=+*#%@"
 
     scene.awake_time = scene.SLEEP_AFTER
     scene.update(3, 1 / 24)
     assert scene.is_sleeping
-    assert scene.render().plain.count("^") == 2
+    sleeping = scene.render().plain
+    assert sum(char != " " for char in sleeping) < sum(char != " " for char in awake)
 
     scene.sleep_time = scene.SLEEP_FOR
     scene.update(4, 1 / 24)
     assert not scene.is_sleeping
-    assert scene.render().plain.count("●") == 2
+    assert scene.render().plain.splitlines()[left_eye[1]][left_eye[0]] in ".:-=+*#%@"
 
 
-def test_buddy_preserves_source_grid_spacing_at_terminal_size():
+def test_buddy_uses_approved_mock_geometry_and_animates():
     import random
 
     from javalamp.scenes.buddy import BuddyScene
@@ -213,21 +226,34 @@ def test_buddy_preserves_source_grid_spacing_at_terminal_size():
 
     scene = BuddyScene(80, 24, get_theme("default"), random.Random(42))
     scene.update(0, 0)
-    rows = scene.render().plain.splitlines()
+    first = scene.render().plain
+    face_chars = [char for char in first if char in ".:-=+*#%@"]
+    (
+        _cx,
+        _eye_y,
+        eye_spacing,
+        eye_radius_x,
+        eye_radius_y,
+        mouth_width,
+        _mouth_top,
+        _mouth_depth,
+    ) = scene._layout()
 
-    cx = scene.width // 2 - 2
-    cy = scene.height // 2
-    assert rows[cy - 2][cx - 20] == "("
-    assert rows[cy - 2][cx - 16] == "●"
-    assert rows[cy - 2][cx - 12] == ")"
-    assert rows[cy - 2][cx + 12] == "("
-    assert rows[cy - 2][cx + 16] == "●"
-    assert rows[cy - 2][cx + 20] == ")"
-    assert rows[cy + 4][cx - 8] == "\\"
-    assert rows[cy + 4][cx - 4] == "_"
-    assert rows[cy + 4][cx] == "_"
-    assert rows[cy + 4][cx + 4] == "_"
-    assert rows[cy + 4][cx + 8] == "/"
+    assert eye_spacing == pytest.approx(80 * 40 * 1.16 / 120)
+    assert eye_radius_x == pytest.approx(80 * 96 * 1.16 / 1200)
+    assert eye_radius_y == pytest.approx(24 * 96 * 1.16 / 720)
+    assert eye_radius_x / eye_radius_y == pytest.approx(2.0)
+    assert mouth_width == pytest.approx(80 * 250 * 1.16 / 1200)
+    assert 130 < len(face_chars) < 300
+    assert len(set(face_chars)) >= 6
+    rows = first.splitlines()
+    assert all(char == " " for char in rows[scene.height // 2][:10])
+
+    scene.update(1, 0.5)
+    second = scene.render().plain
+    assert second != first
+    assert len(set(second) & set(".:-=+*#%@")) >= 6
+    assert sum(a != b for a, b in zip(first, second, strict=True)) > 30
 
 
 def test_user_scene_loader_honors_env_dir(tmp_path, monkeypatch):

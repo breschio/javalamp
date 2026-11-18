@@ -93,7 +93,7 @@ def test_scene_registry_populated():
         "matrix", "starfield", "donut", "aquarium",
         "java", "marquee", "fireworks", "pipes",
         "pollock", "twombly", "bacchus",
-        "konami",
+        "buddy", "konami",
     }
     assert expected.issubset(set(SCENES))
 
@@ -168,6 +168,92 @@ def test_all_public_scenes_survive_all_themes():
             for f in range(3):
                 scene.update(f, 1 / 24)
             assert scene.render() is not None
+
+
+def test_buddy_cycles_through_animated_states():
+    import random
+
+    from javalamp.scenes.buddy import BuddyScene
+    from javalamp.theme import get_theme
+
+    scene = BuddyScene(80, 24, get_theme("default"), random.Random(42))
+
+    scene.update(0, 0)
+    awake = scene.render().plain
+    cx, eye_y, eye_spacing, eye_radius_x, eye_radius_y, *_ = scene._layout()
+    left_eye = (
+        round(cx - eye_spacing / 2),
+        round(eye_y),
+    )
+
+    assert len(set(awake) & set(".:-=+*#%@")) >= 5
+    assert awake.splitlines()[left_eye[1]][left_eye[0]] in ".:-=+*#%@"
+
+    scene.is_blinking = True
+    scene.blink_time = scene.BLINK_FOR / 2
+    scene.update(1, 0)
+    assert scene.is_blinking
+    blinking = scene.render().plain
+    assert blinking.splitlines()[left_eye[1]][left_eye[0]] in ".:-=+*#%@"
+    assert sum(char != " " for char in blinking) < sum(char != " " for char in awake)
+
+    scene.is_blinking = False
+    scene.next_blink = 5
+    scene.next_sparkle = 0
+    scene.update(2, 1 / 24)
+    assert scene.is_sparkling
+    sparkling = scene.render().plain
+    assert sparkling != awake
+    assert sparkling.splitlines()[left_eye[1]][left_eye[0]] in ":-=+*#%@"
+
+    scene.awake_time = scene.SLEEP_AFTER
+    scene.update(3, 1 / 24)
+    assert scene.is_sleeping
+    sleeping = scene.render().plain
+    assert sum(char != " " for char in sleeping) < sum(char != " " for char in awake)
+
+    scene.sleep_time = scene.SLEEP_FOR
+    scene.update(4, 1 / 24)
+    assert not scene.is_sleeping
+    assert scene.render().plain.splitlines()[left_eye[1]][left_eye[0]] in ".:-=+*#%@"
+
+
+def test_buddy_uses_approved_mock_geometry_and_animates():
+    import random
+
+    from javalamp.scenes.buddy import BuddyScene
+    from javalamp.theme import get_theme
+
+    scene = BuddyScene(80, 24, get_theme("default"), random.Random(42))
+    scene.update(0, 0)
+    first = scene.render().plain
+    face_chars = [char for char in first if char in ".:-=+*#%@"]
+    (
+        _cx,
+        _eye_y,
+        eye_spacing,
+        eye_radius_x,
+        eye_radius_y,
+        mouth_width,
+        _mouth_top,
+        _mouth_depth,
+    ) = scene._layout()
+
+    assert eye_spacing == pytest.approx(80 * 40 * 1.16 / 120)
+    assert eye_radius_x == pytest.approx(80 * 96 * 1.16 / 1200)
+    assert eye_radius_y == pytest.approx(24 * 96 * 1.16 / 720)
+    assert eye_radius_x / eye_radius_y == pytest.approx(2.0)
+    assert mouth_width == pytest.approx(80 * 250 * 1.16 / 1200)
+    assert 130 < len(face_chars) < 300
+    assert len(set(face_chars)) >= 6
+    rows = first.splitlines()
+    assert all(char == " " for char in rows[scene.height // 2][:10])
+
+    scene.update(1, 0.5)
+    second = scene.render().plain
+    assert second != first
+    assert len(set(second) & set(".:-=+*#%@")) >= 6
+    assert sum(a != b for a, b in zip(first, second, strict=True)) > 30
 
 
 def test_user_scene_loader_honors_env_dir(tmp_path, monkeypatch):

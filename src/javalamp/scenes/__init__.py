@@ -19,6 +19,7 @@ from pathlib import Path
 from javalamp.scenes import (  # noqa: F401
     aquarium,
     bacchus,
+    buddy,
     donut,
     fireworks,
     konami,

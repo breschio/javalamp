@@ -224,6 +224,7 @@ class Runner:
         with self._sysinfo or nullcontext(), keep_awake(self.caffeinate), cbreak_stdin() as kb_fd, Live(
             console=self.console,
             refresh_per_second=self.fps,
+            auto_refresh=False,
             screen=True,
             transient=False,
         ) as live:
@@ -307,7 +308,7 @@ class Runner:
                     frame += 1
 
                 from rich.console import Group
-                live.update(Group(scene.render(), self._footer(scene)))
+                live.update(Group(scene.render(), self._footer(scene)), refresh=True)
 
                 # Should we cycle?
                 now = time.monotonic()

@@ -82,14 +82,14 @@ class Canvas:
                     dst_row[tx] = src_row[cx]
 
     def to_text(self) -> Text:
-        """Serialize to a rich.Text with one styled span per cell."""
+        """Serialize to a rich.Text, coalescing adjacent equal styles."""
         text = Text(no_wrap=True, overflow="ignore")
         for y, row in enumerate(self._cells):
             # Coalesce adjacent cells with identical style for speed.
             run_chars: list[str] = []
             run_style: Optional[Style] = row[0][1] if row else None
             for ch, style in row:
-                if style == run_style:
+                if style is run_style or style == run_style:
                     run_chars.append(ch)
                 else:
                     text.append("".join(run_chars), style=run_style)

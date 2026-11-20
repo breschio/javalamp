@@ -225,6 +225,10 @@ class _FriendlyCommand(click.Command):
 @click.option("--cycle", "cycle_mode", is_flag=True, default=False,
               help="Skip the picker and cycle through every scene "
                    "(the original v0 behavior).")
+@click.option("--sysinfo", is_flag=True, default=False,
+              help="Show live system stats (CPU, GPU, RAM, Docker, ZFS) in the footer.")
+@click.option("--zfs-pool", default=None, metavar="NAME",
+              help="ZFS pool to monitor; requires --sysinfo. Disabled by default.")
 @click.version_option(package_name="javalamp", prog_name="javalamp")
 def main(
     scene: str | None,
@@ -239,6 +243,8 @@ def main(
     no_caffeinate: bool,
     no_splash: bool,
     cycle_mode: bool,
+    sysinfo: bool,
+    zfs_pool: str | None,
 ) -> None:
     """javalamp — animated ASCII screensaver.
 
@@ -250,6 +256,12 @@ def main(
     if list_only:
         _print_scene_list()
         return
+
+    if zfs_pool is not None:
+        if not sysinfo:
+            raise click.UsageError("--zfs-pool requires --sysinfo")
+        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_.:-]*", zfs_pool):
+            raise click.BadParameter("Invalid ZFS pool name", param_hint="--zfs-pool")
 
     if scene == "new-scene":
         if not scene_arg:
@@ -313,6 +325,8 @@ def main(
         seed=seed,
         caffeinate=not no_caffeinate,
         show_picker=show_picker,
+        sysinfo=sysinfo,
+        zfs_pool=zfs_pool,
     )
     sys.exit(runner.run())
 

@@ -48,6 +48,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+sysinfo = [
+    "nvidia-ml-py>=12.0",
+]
 dev = [
     "pytest>=7",
     "pytest-cov",

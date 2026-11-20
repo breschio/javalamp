@@ -13,6 +13,7 @@ import re
 import shutil
 import signal
 import time
+from contextlib import nullcontext
 
 from rich.console import Console
 from rich.live import Live
@@ -24,6 +25,7 @@ from javalamp.canvas import Canvas
 from javalamp.keyboard import cbreak_stdin, read_key
 from javalamp.picker import CYCLE, QUIT, Picker
 from javalamp.scene import Scene, all_scenes, get_scene
+from javalamp.sysinfo import SysInfoCollector
 from javalamp.theme import Theme, get_theme, theme_names
 
 _DURATION_RE = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*([smhd]?)\s*$", re.IGNORECASE)
@@ -71,6 +73,8 @@ class Runner:
         seed: int | None = None,
         caffeinate: bool = True,
         show_picker: bool = False,
+        sysinfo: bool = False,
+        zfs_pool: str | None = None,
     ) -> None:
         # When theme_name is None we're in "auto" mode: each scene gets its
         # preferred_theme (or "default" if it has none). When the user
@@ -112,6 +116,7 @@ class Runner:
         self._paused = False
         self._theme_change_pending = False
         self._resize_pending = False
+        self._sysinfo = SysInfoCollector(zfs_pool=zfs_pool) if sysinfo else None
 
     # -- terminal size helpers ------------------------------------------------
 
@@ -144,6 +149,17 @@ class Runner:
         dim = Style(color=self.theme.dim)
         bg = Style(bgcolor=self.theme.bg)
         line = Text(no_wrap=True, overflow="ellipsis")
+
+        if self._sysinfo is not None:
+            stats = self._sysinfo.collect()
+            info_str = self._sysinfo.format_footer(stats)
+            if info_str:
+                line.append(f" {info_str} ", style=dim + bg)
+                if self._paused:
+                    line.append("│ PAUSED ", style=Style(color=self.theme.highlight, bold=True) + bg)
+                line.append("│ q · n · space · t ", style=dim + bg)
+                return line
+
         line.append(" ✦ javalamp ", style=accent + bg)
         line.append(f"· {scene.title} ", style=Style(color=self.theme.fg) + bg)
         line.append(f"· theme:{self.theme.name} ", style=dim + bg)
@@ -205,7 +221,7 @@ class Runner:
         target_dt = 1.0 / self.fps
         start = time.monotonic()
 
-        with keep_awake(self.caffeinate), cbreak_stdin() as kb_fd, Live(
+        with self._sysinfo or nullcontext(), keep_awake(self.caffeinate), cbreak_stdin() as kb_fd, Live(
             console=self.console,
             refresh_per_second=self.fps,
             screen=True,

@@ -52,6 +52,26 @@ def test_canvas_to_text_rowcount():
     assert rendered.count("\n") == 2
 
 
+def test_canvas_coalesces_shared_and_equal_styles_without_changing_spans():
+    shared = Style(color="red", bgcolor="black", bold=True)
+    equal = Style(color="red", bgcolor="black", bold=True)
+    other = Style(color="blue")
+    assert shared is not equal
+    canvas = Canvas(5, 2)
+    canvas.set(0, 0, "a", shared)
+    canvas.set(1, 0, "b", shared)
+    canvas.set(2, 0, "c", equal)
+    canvas.set(3, 0, "d", other)
+    canvas.set(0, 1, "e", shared)
+    text = canvas.to_text()
+    assert text.plain == "abcd \ne    "
+    assert [(span.start, span.end, span.style) for span in text.spans] == [
+        (0, 3, shared), (3, 4, other), (6, 7, shared),
+    ]
+    assert text.no_wrap is True
+    assert text.overflow == "ignore"
+
+
 def test_canvas_set_takes_first_char_only():
     c = Canvas(3, 1)
     c.set(0, 0, "abc")

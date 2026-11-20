@@ -419,7 +419,7 @@ class Picker:
                     return result
 
             self.update(dt)
-            live.update(self.render())
+            live.update(self.render(), refresh=True)
 
             elapsed = time.monotonic() - tick_start
             sleep_for = target_dt - elapsed
